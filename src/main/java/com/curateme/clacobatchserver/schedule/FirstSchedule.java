@@ -20,7 +20,8 @@ public class FirstSchedule {
         this.jobRegistry = jobRegistry;
     }
 
-    @Scheduled(cron = "10 * * * * *", zone = "Asia/Seoul") // 한국시간에 맞춰서 스케줄 실행
+    @Scheduled(cron = "10 * * * * *", zone = "Asia/Seoul")
+    //@Scheduled(cron = "0 0 0 1 * *", zone = "Asia/Seoul") -> 추후 한달 단위로 수정
     public void runFirstJob() throws Exception {
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-hh-mm-ss");
