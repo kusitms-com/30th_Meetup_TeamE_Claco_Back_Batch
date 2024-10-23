@@ -1,9 +1,8 @@
 package com.curateme.clacobatchserver.batch;
 
-import com.curateme.clacobatchserver.entity.BeforeEntity;
-import com.curateme.clacobatchserver.repository.AfterRepository;
-import com.curateme.clacobatchserver.repository.BeforeRepository;
-import com.curateme.clacobatchserver.service.KopisApiReader;
+import com.curateme.clacobatchserver.entity.ConcertEntity;
+import com.curateme.clacobatchserver.service.KopisConcertApiReader;
+import com.curateme.clacobatchserver.service.KopisDetailApiReader;
 import com.curateme.clacobatchserver.service.KopisEntityWriter;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -15,41 +14,47 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
-public class KopisBatch {
+public class ConcertBatch {
     private final JobRepository jobRepository;
     private final PlatformTransactionManager platformTransactionManager;
 
-    private final KopisApiReader kopisApiReader;
-    private final BeforeRepository beforeRepository;
-    private final AfterRepository afterRepository;
+    private final KopisConcertApiReader kopisApiReader;
+    private final KopisDetailApiReader kopisDetailApiReader;
 
-    public KopisBatch(JobRepository jobRepository,
-        PlatformTransactionManager platformTransactionManager, BeforeRepository beforeRepository,
-        AfterRepository afterRepository, KopisApiReader kopisApiReader) {
+    public ConcertBatch(JobRepository jobRepository,
+        PlatformTransactionManager platformTransactionManager,
+        KopisConcertApiReader kopisApiReader,
+        KopisDetailApiReader kopisDetailApiReader) {
         this.jobRepository = jobRepository;
         this.platformTransactionManager = platformTransactionManager;
-        this.beforeRepository = beforeRepository;
-        this.afterRepository = afterRepository;
         this.kopisApiReader = kopisApiReader;
+        this.kopisDetailApiReader = kopisDetailApiReader;
     }
 
     @Bean
     public Job kopisJob(KopisEntityWriter writer){
         return new JobBuilder("kopisJob", jobRepository)
             .start(firstStep(writer))
+            .next(secondStep())
             .build();
     }
 
+    // 1. Kopis에서 해당 기간에 대한 공연 정보 가져 오기
     @Bean
     public Step firstStep(KopisEntityWriter writer) {
         return new StepBuilder("firstStep", jobRepository)
-            .<BeforeEntity, BeforeEntity>chunk(10, platformTransactionManager)
+            .<ConcertEntity, ConcertEntity>chunk(10, platformTransactionManager)
             .reader(kopisApiReader)
             .writer(writer)
             .build();
     }
 
-
-
+    // 2. Step1 에서 가져온 공연에 대해 상세 내역 가져 오기
+    @Bean
+    public Step secondStep() {
+        return new StepBuilder("secondStep", jobRepository)
+            .tasklet(kopisDetailApiReader, platformTransactionManager)
+            .build();
+    }
 
 }

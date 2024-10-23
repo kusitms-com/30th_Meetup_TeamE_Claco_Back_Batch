@@ -1,25 +1,25 @@
 package com.curateme.clacobatchserver.service;
 
-import com.curateme.clacobatchserver.entity.BeforeEntity;
-import com.curateme.clacobatchserver.repository.BeforeRepository;
+import com.curateme.clacobatchserver.entity.ConcertEntity;
+import com.curateme.clacobatchserver.repository.ConcertRepository;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.stereotype.Component;
 
 @Component
-public class KopisEntityWriter implements ItemWriter<BeforeEntity> {
+public class KopisEntityWriter implements ItemWriter<ConcertEntity> {
 
-    private final BeforeRepository beforeRepository;
+    private final ConcertRepository concertRepository;
 
-    public KopisEntityWriter(BeforeRepository beforeRepository) {
+    public KopisEntityWriter(ConcertRepository concertRepository) {
 
-        this.beforeRepository = beforeRepository;
+        this.concertRepository = concertRepository;
     }
 
     @Override
-    public void write(Chunk<? extends BeforeEntity> items) throws Exception {
+    public void write(Chunk<? extends ConcertEntity> items) throws Exception {
 
-        beforeRepository.saveAll(items.getItems());
+        concertRepository.saveAll(items.getItems());
     }
 
 

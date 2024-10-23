@@ -10,18 +10,18 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.Scheduled;
 
 @Configuration
-public class FirstSchedule {
+public class ConcertSchedule {
 
     private final JobLauncher jobLauncher;
     private final JobRegistry jobRegistry;
 
-    public FirstSchedule(JobLauncher jobLauncher, JobRegistry jobRegistry) {
+    public ConcertSchedule(JobLauncher jobLauncher, JobRegistry jobRegistry) {
         this.jobLauncher = jobLauncher;
         this.jobRegistry = jobRegistry;
     }
 
     @Scheduled(cron = "10 * * * * *", zone = "Asia/Seoul")
-    //@Scheduled(cron = "0 0 0 1 * *", zone = "Asia/Seoul") -> 추후 한달 단위로 수정
+    //@Scheduled(cron = "0 0 0 1 * *", zone = "Asia/Seoul") -> 추후 한달 단위로 수정(매달 1일)
     public void runFirstJob() throws Exception {
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-hh-mm-ss");

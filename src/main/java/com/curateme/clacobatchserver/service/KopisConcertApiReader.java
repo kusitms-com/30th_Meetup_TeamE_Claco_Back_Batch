@@ -1,6 +1,6 @@
 package com.curateme.clacobatchserver.service;
 
-import com.curateme.clacobatchserver.entity.BeforeEntity;
+import com.curateme.clacobatchserver.entity.ConcertEntity;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -17,20 +17,20 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.HttpClientErrorException;
 
 @Component
-public class KopisApiReader implements ItemReader<BeforeEntity> {
+public class KopisConcertApiReader implements ItemReader<ConcertEntity> {
 
     private final RestTemplate restTemplate;
     private final String apiUrl = "http://www.kopis.or.kr/openApi/restful/pblprfr?service=f222668534db409b8769f640387de9c3";
     private int currentPage = 1;
-    private List<BeforeEntity> beforeEntities = new ArrayList<>();
+    private List<ConcertEntity> beforeEntities = new ArrayList<>();
     private int index = 0;
 
-    public KopisApiReader(RestTemplate restTemplate) {
+    public KopisConcertApiReader(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
 
     @Override
-    public BeforeEntity read() throws Exception {
+    public ConcertEntity read() throws Exception {
 
         if (index >= beforeEntities.size()) {
             loadNextPage();
@@ -46,7 +46,7 @@ public class KopisApiReader implements ItemReader<BeforeEntity> {
 
     private void loadNextPage() {
         LocalDate startDate = LocalDate.now();
-        LocalDate endDate = startDate.plusMonths(3);
+        LocalDate endDate = startDate.plusDays(1);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
         String formattedStartDate = startDate.format(formatter);
@@ -60,26 +60,26 @@ public class KopisApiReader implements ItemReader<BeforeEntity> {
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
         try {
-            ResponseEntity<BeforeEntity[]> response = restTemplate.exchange(requestUrl, HttpMethod.GET, entity, BeforeEntity[].class);
-
+            ResponseEntity<ConcertEntity[]> response = restTemplate.exchange(requestUrl, HttpMethod.GET, entity, ConcertEntity[].class);
+            System.out.println("response = " + response);
             if (response.getBody() != null && response.getBody().length > 0) {
                 beforeEntities.clear();
-                for (BeforeEntity Beforeentity : response.getBody()) {
-                    BeforeEntity beforeEntity = new BeforeEntity();
-                    beforeEntity.setConcertDetails(
-                        Beforeentity.getMt20id(),
-                        Beforeentity.getPrfnm(),
-                        Beforeentity.getPrfpdfrom(),
-                        Beforeentity.getPrfpdto(),
-                        Beforeentity.getFcltynm(),
-                        Beforeentity.getPoster(),
-                        Beforeentity.getArea(),
-                        Beforeentity.getGenrenm(),
-                        Beforeentity.getOpenrun(),
-                        Beforeentity.getPrfstate()
+                for (ConcertEntity beforeentity : response.getBody()) {
+                    ConcertEntity concertEntity = new ConcertEntity();
+                    concertEntity.setConcertDetails(
+                        beforeentity.getMt20id(),
+                        beforeentity.getPrfnm(),
+                        beforeentity.getPrfpdfrom(),
+                        beforeentity.getPrfpdto(),
+                        beforeentity.getFcltynm(),
+                        beforeentity.getPoster(),
+                        beforeentity.getArea(),
+                        beforeentity.getGenrenm(),
+                        beforeentity.getOpenrun(),
+                        beforeentity.getPrfstate()
                     );
 
-                    beforeEntities.add(beforeEntity);
+                    beforeEntities.add(concertEntity);
                 }
             } else {
                 beforeEntities.clear();
