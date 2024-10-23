@@ -1,10 +1,12 @@
 package com.curateme.clacobatchserver.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -106,6 +108,10 @@ public class ConcertEntity {
     @Column(name = "introduction")
     private String styurl;
 
+    @ElementCollection
+    @Column(name = "categories")
+    private List<String> categories;
+
     public void setConcertDetails(String mt20id, String prfnm, String prfpdfrom, String prfpdto,
         String fcltynm, String poster, String area, String genrenm,
         String openrun, String prfstate) {
@@ -148,5 +154,9 @@ public class ConcertEntity {
 
     public void setStyurl(String styurl){
         this.styurl =styurl;
+    }
+
+    public void setCategories(List<String> categories) {
+        this.categories = categories;
     }
 }
