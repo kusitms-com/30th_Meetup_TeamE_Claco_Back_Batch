@@ -103,6 +103,9 @@ public class ConcertEntity {
     @Column(name = "scheduleGuidance", length = 1000)
     private String dtguidance;
 
+    @Column(name = "introduction")
+    private String styurl;
+
     public void setConcertDetails(String mt20id, String prfnm, String prfpdfrom, String prfpdto,
         String fcltynm, String poster, String area, String genrenm,
         String openrun, String prfstate) {
@@ -141,5 +144,9 @@ public class ConcertEntity {
         this.musicalcreate = musicalcreate;
         this.updatedate = updatedate;
         this.dtguidance = dtguidance;
+    }
+
+    public void setStyurl(String styurl){
+        this.styurl =styurl;
     }
 }

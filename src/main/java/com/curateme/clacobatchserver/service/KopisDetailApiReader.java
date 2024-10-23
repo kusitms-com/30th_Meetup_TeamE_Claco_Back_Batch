@@ -104,6 +104,16 @@ public class KopisDetailApiReader implements Tasklet {
                         String updatedate = getTagValue("updatedate", element);
                         String dtguidance = getTagValue("dtguidance", element);
 
+                        NodeList styurlsList = element.getElementsByTagName("styurls");
+                        if (styurlsList.getLength() > 0) {
+                            Element styurlsElement = (Element) styurlsList.item(0);
+                            NodeList styurlList = styurlsElement.getElementsByTagName("styurl");
+                            if (styurlList.getLength() > 0) {
+                                String styurl = styurlList.item(0).getTextContent();
+                                concertEntity.setStyurl(styurl);
+                            }
+                        }
+
                         concertEntity.setAdditionalConcertDetails(
                             prfcast, prfcrew, prfruntime, prfage, entrpsnm, entrpsnmP, entrpsnmA, entrpsnmH,
                             entrpsnmS, pcseguidance, visit, child, daehakro, festival, musicallicense,

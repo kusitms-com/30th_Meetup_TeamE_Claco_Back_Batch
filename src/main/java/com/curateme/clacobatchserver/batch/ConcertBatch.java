@@ -57,4 +57,10 @@ public class ConcertBatch {
             .build();
     }
 
+    // 3. 공연 포스터 이미지를 통해서 Flask 서버로 부터 카테고리 추출
+    @Bean
+    public Step thirdStep(){
+        return null;
+    }
+
 }
