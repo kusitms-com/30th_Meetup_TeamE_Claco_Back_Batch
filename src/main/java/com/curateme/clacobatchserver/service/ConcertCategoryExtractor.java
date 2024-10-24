@@ -45,15 +45,25 @@ public class ConcertCategoryExtractor {
 
             if (response.getBody() != null) {
                 Map<String, Object> responseBody = (Map<String, Object>) response.getBody();
-                Map<String, Object> clovaResponse = (Map<String, Object>) responseBody.get("clova_response");
+                List<Map<String, Object>> clovaResponse = (List<Map<String, Object>>) responseBody.get("clova_response");
 
-                List<String> categories = (List<String>) clovaResponse.get("categories");
+                Map<String, Double> categories = new HashMap<>();
+
+                for (Map<String, Object> categoryData : clovaResponse) {
+                    String category = categoryData.get("name").toString();
+                    Double score = Double.parseDouble(categoryData.get("score").toString());
+                    categories.put(category, score);
+                }
+
                 concert.setCategories(categories);
 
                 concertRepository.save(concert);
             }
         }
+
         return RepeatStatus.FINISHED;
     }
+
+
 
 }

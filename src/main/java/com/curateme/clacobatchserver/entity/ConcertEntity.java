@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -110,8 +111,7 @@ public class ConcertEntity {
 
     @ElementCollection
     @Column(name = "categories")
-    private List<String> categories;
-
+    private Map<String, Double> categories;
     public void setConcertDetails(String mt20id, String prfnm, String prfpdfrom, String prfpdto,
         String fcltynm, String poster, String area, String genrenm,
         String openrun, String prfstate) {
@@ -156,7 +156,7 @@ public class ConcertEntity {
         this.styurl =styurl;
     }
 
-    public void setCategories(List<String> categories) {
+    public void setCategories(Map<String, Double> categories) {
         this.categories = categories;
     }
 }
