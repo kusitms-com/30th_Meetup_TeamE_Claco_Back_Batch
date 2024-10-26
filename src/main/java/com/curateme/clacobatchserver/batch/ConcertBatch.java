@@ -1,5 +1,6 @@
 package com.curateme.clacobatchserver.batch;
 
+import com.curateme.clacobatchserver.config.s3.S3Service;
 import com.curateme.clacobatchserver.entity.ConcertEntity;
 import com.curateme.clacobatchserver.service.ConcertCategoryExtractor;
 import com.curateme.clacobatchserver.service.KopisConcertApiReader;
@@ -26,17 +27,20 @@ public class ConcertBatch {
     private final KopisConcertApiReader kopisApiReader;
     private final KopisDetailApiReader kopisDetailApiReader;
     private final ConcertCategoryExtractor concertCategoryExtractor;
+    private final S3Service s3Service;
 
     public ConcertBatch(JobRepository jobRepository,
         PlatformTransactionManager platformTransactionManager,
         KopisConcertApiReader kopisApiReader,
         KopisDetailApiReader kopisDetailApiReader,
-        ConcertCategoryExtractor concertCategoryExtractor) {
+        ConcertCategoryExtractor concertCategoryExtractor,
+        S3Service s3Service) {
         this.jobRepository = jobRepository;
         this.platformTransactionManager = platformTransactionManager;
         this.kopisApiReader = kopisApiReader;
         this.kopisDetailApiReader = kopisDetailApiReader;
         this.concertCategoryExtractor = concertCategoryExtractor;
+        this.s3Service = s3Service;
     }
 
     @Bean
@@ -72,6 +76,28 @@ public class ConcertBatch {
         return new StepBuilder("thirdStep", jobRepository)
             .tasklet(concertCategoryExtractorTasklet(), platformTransactionManager)
             .build();
+    }
+
+    // 4. 추출한 카테고리 값을 CSV 파일에 저장
+    @Bean
+    public Step fourthStep() {
+        return new StepBuilder("fourthStep", jobRepository)
+            .tasklet((StepContribution contribution, ChunkContext chunkContext) -> {
+
+                String folderPath = "datasets";
+                String fileName = "concerts.csv";
+                String localFilePath = s3Service.downloadCsvFile(folderPath, fileName);
+
+
+
+                if (localFilePath != null) {
+                    s3Service.updateAndUploadCsvFile(folderPath, fileName, localFilePath);
+                } else {
+                    System.out.println("concerts.csv 파일 다운로드 실패");
+                }
+
+                return RepeatStatus.FINISHED;
+            }, platformTransactionManager).build();
     }
 
     @Bean
