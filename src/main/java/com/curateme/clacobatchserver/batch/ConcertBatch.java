@@ -13,12 +13,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.StringJoiner;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -62,7 +60,11 @@ public class ConcertBatch {
     @Bean
     public Job kopisJob(KopisEntityWriter writer){
         return new JobBuilder("kopisJob", jobRepository)
-            .start(fourthStep())
+            .start(firstStep(writer))
+            .next(secondStep())
+            .next(thirdStep())
+            .next(fourthStep())
+            .next(finalStep())
             .build();
     }
 
@@ -100,87 +102,124 @@ public class ConcertBatch {
 
                 String folderPath = "datasets";
                 String fileName = "concerts.csv";
+
                 String localFilePath = s3Service.downloadCsvFile(folderPath, fileName);
-
-                // 다운로드된 파일 경로 출력 및 파일 존재 여부 확인
-                System.out.println("다운로드된 파일 경로: " + localFilePath);
-                File downloadedFile = new File(localFilePath);
-                if (!downloadedFile.exists()) {
-                    System.err.println("파일이 존재하지 않습니다: " + localFilePath);
-                    return RepeatStatus.FINISHED; // 파일이 없으면 작업 종료
+                if (!isFileExists(localFilePath)) {
+                    return RepeatStatus.FINISHED;
                 }
 
-                List<String> columns = Arrays.asList("concertId", "grand", "delicate", "classical", "modern",
-                    "lyrical", "dynamic", "romantic", "tragic", "familiar", "novel");
+                StringJoiner csvContent = readExistingCsvContent(localFilePath);
+                appendNewConcertData(csvContent);
 
-                // CSV 내용을 읽고 새 데이터를 추가하기 위한 StringJoiner
-                StringJoiner csvContent = new StringJoiner("\n");
-
-                // 기존 CSV 파일의 내용을 읽기
-                try (BufferedReader reader = new BufferedReader(new FileReader(downloadedFile))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        csvContent.add(line); // 기존 내용을 추가
-                    }
-                } catch (IOException e) {
-                    System.err.println("기존 CSV 파일 읽기 오류: " + e.getMessage());
-                    return RepeatStatus.FINISHED; // 읽기 오류 발생 시 종료
-                }
-
-                // 새 데이터 추가
-                List<ConcertEntity> concerts = concertRepository.getAllConcertsWithCategories();
-                for (ConcertEntity concert : concerts) {
-                    Map<String, Object> row = new HashMap<>();
-                    row.put("concertId", concert.getMt20id());
-
-                    // 모든 카테고리를 0으로 초기화한 뒤, 실제 데이터를 넣기
-                    for (String column : columns.subList(1, columns.size())) {
-                        row.put(column, 0.0);
-                    }
-
-                    // Categories에서 값을 가져와 CSV에 맞게 추가
-                    if (concert.getCategories() != null) {
-                        for (Map.Entry<String, Double> entry : concert.getCategories().entrySet()) {
-                            // 카테고리가 컬럼에 존재하는지 확인
-                            if (columns.contains(entry.getKey())) {
-                                row.put(entry.getKey(), entry.getValue());
-                            }
-                        }
-                    }
-
-                    StringJoiner rowContent = new StringJoiner(",");
-                    for (String column : columns) {
-                        rowContent.add(String.valueOf(row.get(column)));
-                    }
-                    csvContent.add(rowContent.toString());
-                }
-
-                // 임시 파일 생성 및 최종 CSV 내용 쓰기
-                File tempFile = null;
-                try {
-                    // 임시 파일 생성
-                    tempFile = File.createTempFile("concerts_", ".csv");
-
-                    // CSV 내용을 임시 파일에 쓰기
-                    try (BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
-                        writer.write(csvContent.toString());
-                    }
-
-                    // S3에 파일 업로드
-                    s3Service.updateAndUploadCsvFile(folderPath, fileName, tempFile.getAbsolutePath());
-
-                } catch (IOException e) {
-                    System.err.println("파일 쓰기 오류: " + e.getMessage());
-                } finally {
-                    // 임시 파일 정리
-                    if (tempFile != null && tempFile.exists()) {
-                        tempFile.delete();
-                    }
-                }
+                saveAndUploadCsvFile(csvContent, folderPath, fileName);
 
                 return RepeatStatus.FINISHED;
             }, platformTransactionManager).build();
     }
+
+    // 5. 해당 Batch에서 가져온 값들을 전부 삭제하는 로직
+    @Bean
+    public Step finalStep() {
+        return new StepBuilder("finalStep", jobRepository)
+            .tasklet((StepContribution contribution, ChunkContext chunkContext) -> {
+                // 데이터베이스에서 ConcertEntity와 관련된 모든 데이터를 삭제
+                deleteAllConcertData();
+                return RepeatStatus.FINISHED;
+            }, platformTransactionManager).build();
+    }
+
+    // ConcertEntity와 관련된 모든 데이터를 삭제하는 메서드
+    private void deleteAllConcertData() {
+        try {
+            concertRepository.deleteAll();
+        } catch (Exception e) {
+            System.err.println("ConcertEntity 데이터 삭제 오류: " + e.getMessage());
+        }
+    }
+
+
+    // 파일 존재 확인 메서드
+    private boolean isFileExists(String localFilePath) {
+        File downloadedFile = new File(localFilePath);
+        if (!downloadedFile.exists()) {
+            System.err.println("파일이 존재하지 않습니다: " + localFilePath);
+            return false;
+        }
+        System.out.println("다운로드된 파일 경로: " + localFilePath);
+        return true;
+    }
+
+    // 기존 CSV 파일 내용을 읽는 메서드
+    private StringJoiner readExistingCsvContent(String localFilePath) {
+        StringJoiner csvContent = new StringJoiner("\n");
+        try (BufferedReader reader = new BufferedReader(new FileReader(localFilePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                csvContent.add(line);
+            }
+        } catch (IOException e) {
+            System.err.println("기존 CSV 파일 읽기 오류: " + e.getMessage());
+        }
+        return csvContent;
+    }
+
+    // 새로운 Concert 데이터를 CSV에 추가하는 메서드
+    private void appendNewConcertData(StringJoiner csvContent) {
+        List<String> columns = Arrays.asList("concertId", "grand", "delicate", "classical", "modern",
+            "lyrical", "dynamic", "romantic", "tragic", "familiar", "novel");
+
+        List<ConcertEntity> concerts = concertRepository.getAllConcertsWithCategories();
+        for (ConcertEntity concert : concerts) {
+            Map<String, Object> row = initializeRowData(columns, concert);
+            StringJoiner rowContent = new StringJoiner(",");
+            for (String column : columns) {
+                rowContent.add(String.valueOf(row.get(column)));
+            }
+            csvContent.add(rowContent.toString());
+        }
+    }
+
+    // 새로운 Concert 데이터 행을 초기화하는 메서드
+    private Map<String, Object> initializeRowData(List<String> columns, ConcertEntity concert) {
+        Map<String, Object> row = new HashMap<>();
+        row.put("concertId", concert.getMt20id());
+
+        for (String column : columns.subList(1, columns.size())) {
+            row.put(column, 0.0);
+        }
+
+        if (concert.getCategories() != null) {
+            for (Map.Entry<String, Double> entry : concert.getCategories().entrySet()) {
+                if (columns.contains(entry.getKey())) {
+                    row.put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+
+        return row;
+    }
+
+    // 임시 파일에 저장하고 S3에 업로드하는 메서드
+    private void saveAndUploadCsvFile(StringJoiner csvContent, String folderPath, String fileName) {
+        File tempFile = null;
+        try {
+            tempFile = File.createTempFile("concerts_", ".csv");
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
+                writer.write(csvContent.toString());
+            }
+
+            s3Service.updateAndUploadCsvFile(folderPath, fileName, tempFile.getAbsolutePath());
+
+        } catch (IOException e) {
+            System.err.println("파일 쓰기 오류: " + e.getMessage());
+        } finally {
+            // 임시 파일 정리
+            if (tempFile != null && tempFile.exists()) {
+                tempFile.delete();
+            }
+        }
+    }
+
 
 
 
