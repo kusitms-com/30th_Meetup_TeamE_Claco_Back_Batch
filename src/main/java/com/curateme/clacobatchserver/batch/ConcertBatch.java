@@ -7,8 +7,10 @@ import com.curateme.clacobatchserver.service.ConcertCategoryExtractor;
 import com.curateme.clacobatchserver.service.KopisConcertApiReader;
 import com.curateme.clacobatchserver.service.KopisDetailApiReader;
 import com.curateme.clacobatchserver.service.KopisEntityWriter;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -105,18 +107,28 @@ public class ConcertBatch {
                 File downloadedFile = new File(localFilePath);
                 if (!downloadedFile.exists()) {
                     System.err.println("파일이 존재하지 않습니다: " + localFilePath);
-                    return RepeatStatus.FINISHED;
+                    return RepeatStatus.FINISHED; // 파일이 없으면 작업 종료
                 }
 
                 List<String> columns = Arrays.asList("concertId", "grand", "delicate", "classical", "modern",
                     "lyrical", "dynamic", "romantic", "tragic", "familiar", "novel");
 
-                // CSV 형식으로 변환할 데이터를 저장
-                List<ConcertEntity> concerts = concertRepository.getAllConcertsWithCategories();
+                // CSV 내용을 읽고 새 데이터를 추가하기 위한 StringJoiner
                 StringJoiner csvContent = new StringJoiner("\n");
 
-                csvContent.add(String.join(",", columns));
+                // 기존 CSV 파일의 내용을 읽기
+                try (BufferedReader reader = new BufferedReader(new FileReader(downloadedFile))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        csvContent.add(line); // 기존 내용을 추가
+                    }
+                } catch (IOException e) {
+                    System.err.println("기존 CSV 파일 읽기 오류: " + e.getMessage());
+                    return RepeatStatus.FINISHED; // 읽기 오류 발생 시 종료
+                }
 
+                // 새 데이터 추가
+                List<ConcertEntity> concerts = concertRepository.getAllConcertsWithCategories();
                 for (ConcertEntity concert : concerts) {
                     Map<String, Object> row = new HashMap<>();
                     row.put("concertId", concert.getMt20id());
@@ -128,7 +140,7 @@ public class ConcertBatch {
 
                     // Categories에서 값을 가져와 CSV에 맞게 추가
                     if (concert.getCategories() != null) {
-                        for (Entry<String, Double> entry : concert.getCategories().entrySet()) {
+                        for (Map.Entry<String, Double> entry : concert.getCategories().entrySet()) {
                             // 카테고리가 컬럼에 존재하는지 확인
                             if (columns.contains(entry.getKey())) {
                                 row.put(entry.getKey(), entry.getValue());
@@ -143,10 +155,13 @@ public class ConcertBatch {
                     csvContent.add(rowContent.toString());
                 }
 
+                // 임시 파일 생성 및 최종 CSV 내용 쓰기
                 File tempFile = null;
                 try {
+                    // 임시 파일 생성
                     tempFile = File.createTempFile("concerts_", ".csv");
 
+                    // CSV 내용을 임시 파일에 쓰기
                     try (BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
                         writer.write(csvContent.toString());
                     }
@@ -157,6 +172,7 @@ public class ConcertBatch {
                 } catch (IOException e) {
                     System.err.println("파일 쓰기 오류: " + e.getMessage());
                 } finally {
+                    // 임시 파일 정리
                     if (tempFile != null && tempFile.exists()) {
                         tempFile.delete();
                     }
@@ -165,6 +181,7 @@ public class ConcertBatch {
                 return RepeatStatus.FINISHED;
             }, platformTransactionManager).build();
     }
+
 
 
 

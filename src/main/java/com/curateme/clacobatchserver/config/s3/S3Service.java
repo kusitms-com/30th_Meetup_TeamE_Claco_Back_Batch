@@ -39,7 +39,6 @@ public class S3Service {
 
     public void updateAndUploadCsvFile(String folderPath, String fileName, String filePath) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath, true))) {
-            writer.write("\nUpdated Data");
             log.info("File updated successfully: {}", filePath);
         } catch (IOException e) {
             log.error("Error updating file", e);
