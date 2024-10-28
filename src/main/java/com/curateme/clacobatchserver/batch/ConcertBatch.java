@@ -220,14 +220,6 @@ public class ConcertBatch {
         }
     }
 
-
-
-
-
-
-
-
-
     @Bean
     public Tasklet concertCategoryExtractorTasklet() {
         return new Tasklet() {
