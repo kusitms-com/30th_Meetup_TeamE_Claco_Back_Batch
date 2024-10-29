@@ -1,6 +1,6 @@
 package com.curateme.clacobatchserver.service;
 
-import com.curateme.clacobatchserver.entity.ConcertEntity;
+import com.curateme.clacobatchserver.entity.Concert;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -17,12 +17,12 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.HttpClientErrorException;
 
 @Component
-public class KopisConcertApiReader implements ItemReader<ConcertEntity> {
+public class KopisConcertApiReader implements ItemReader<Concert> {
 
     private final RestTemplate restTemplate;
     private final String apiUrl = "http://www.kopis.or.kr/openApi/restful/pblprfr?service=f222668534db409b8769f640387de9c3";
     private int currentPage = 1;
-    private List<ConcertEntity> beforeEntities = new ArrayList<>();
+    private List<Concert> beforeEntities = new ArrayList<>();
     private int index = 0;
 
     public KopisConcertApiReader(RestTemplate restTemplate) {
@@ -30,7 +30,7 @@ public class KopisConcertApiReader implements ItemReader<ConcertEntity> {
     }
 
     @Override
-    public ConcertEntity read() throws Exception {
+    public Concert read() throws Exception {
 
         if (index >= beforeEntities.size()) {
             loadNextPage();
@@ -60,13 +60,13 @@ public class KopisConcertApiReader implements ItemReader<ConcertEntity> {
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
         try {
-            ResponseEntity<ConcertEntity[]> response = restTemplate.exchange(requestUrl, HttpMethod.GET, entity, ConcertEntity[].class);
+            ResponseEntity<Concert[]> response = restTemplate.exchange(requestUrl, HttpMethod.GET, entity, Concert[].class);
             System.out.println("response = " + response);
             if (response.getBody() != null && response.getBody().length > 0) {
                 beforeEntities.clear();
-                for (ConcertEntity beforeentity : response.getBody()) {
-                    ConcertEntity concertEntity = new ConcertEntity();
-                    concertEntity.setConcertDetails(
+                for (Concert beforeentity : response.getBody()) {
+                    Concert concert = new Concert();
+                    concert.setConcertDetails(
                         beforeentity.getMt20id(),
                         beforeentity.getPrfnm(),
                         beforeentity.getPrfpdfrom(),
@@ -79,7 +79,7 @@ public class KopisConcertApiReader implements ItemReader<ConcertEntity> {
                         beforeentity.getPrfstate()
                     );
 
-                    beforeEntities.add(concertEntity);
+                    beforeEntities.add(concert);
                 }
             } else {
                 beforeEntities.clear();

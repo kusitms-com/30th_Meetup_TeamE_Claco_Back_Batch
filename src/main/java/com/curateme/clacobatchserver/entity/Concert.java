@@ -1,11 +1,15 @@
 package com.curateme.clacobatchserver.entity;
 
+import com.curateme.clacobatchserver.global.BaseEntity;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MapKeyColumn;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,14 +19,14 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ConcertEntity {
+public class Concert extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "concertId")
-        private String mt20id;
+    private String mt20id;
 
     @Column(name = "concertName")
     private String prfnm;
@@ -109,7 +113,9 @@ public class ConcertEntity {
     private String styurl;
 
     @ElementCollection
-    @Column(name = "categories")
+    @CollectionTable(name = "ConcertCategory", joinColumns = @JoinColumn(name = "concertId"))
+    @MapKeyColumn(name = "category")
+    @Column(name = "score")
     private Map<String, Double> categories;
     public void setConcertDetails(String mt20id, String prfnm, String prfpdfrom, String prfpdto,
         String fcltynm, String poster, String area, String genrenm,

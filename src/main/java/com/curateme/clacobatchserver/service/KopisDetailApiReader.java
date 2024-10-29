@@ -1,6 +1,6 @@
 package com.curateme.clacobatchserver.service;
 
-import com.curateme.clacobatchserver.entity.ConcertEntity;
+import com.curateme.clacobatchserver.entity.Concert;
 import com.curateme.clacobatchserver.repository.ConcertRepository;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -33,16 +33,16 @@ public class KopisDetailApiReader implements Tasklet {
 
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-        List<ConcertEntity> beforeEntities = concertRepository.findAll();
+        List<Concert> beforeEntities = concertRepository.findAll();
 
-        for (ConcertEntity concertEntity : beforeEntities) {
-            fetchAndSave(concertEntity.getMt20id(), concertEntity);
+        for (Concert concert : beforeEntities) {
+            fetchAndSave(concert.getMt20id(), concert);
         }
 
         return RepeatStatus.FINISHED;
     }
 
-    private void fetchAndSave(String mt20id, ConcertEntity concertEntity) {
+    private void fetchAndSave(String mt20id, Concert concert) {
         try {
             String urlString = String.format(
                 "http://www.kopis.or.kr/openApi/restful/pblprfr/%s?service=f222668534db409b8769f640387de9c3",
@@ -110,17 +110,17 @@ public class KopisDetailApiReader implements Tasklet {
                             NodeList styurlList = styurlsElement.getElementsByTagName("styurl");
                             if (styurlList.getLength() > 0) {
                                 String styurl = styurlList.item(0).getTextContent();
-                                concertEntity.setStyurl(styurl);
+                                concert.setStyurl(styurl);
                             }
                         }
 
-                        concertEntity.setAdditionalConcertDetails(
+                        concert.setAdditionalConcertDetails(
                             prfcast, prfcrew, prfruntime, prfage, entrpsnm, entrpsnmP, entrpsnmA, entrpsnmH,
                             entrpsnmS, pcseguidance, visit, child, daehakro, festival, musicallicense,
                             musicalcreate, updatedate, dtguidance
                         );
 
-                        concertRepository.save(concertEntity);
+                        concertRepository.save(concert);
                     }
                 }
             } else {
