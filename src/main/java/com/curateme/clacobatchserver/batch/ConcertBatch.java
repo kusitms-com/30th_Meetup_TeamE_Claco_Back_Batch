@@ -1,7 +1,7 @@
 package com.curateme.clacobatchserver.batch;
 
 import com.curateme.clacobatchserver.config.s3.S3Service;
-import com.curateme.clacobatchserver.entity.ConcertEntity;
+import com.curateme.clacobatchserver.entity.Concert;
 import com.curateme.clacobatchserver.repository.ConcertRepository;
 import com.curateme.clacobatchserver.service.ConcertCategoryExtractor;
 import com.curateme.clacobatchserver.service.KopisConcertApiReader;
@@ -64,7 +64,6 @@ public class ConcertBatch {
             .next(secondStep())
             .next(thirdStep())
             .next(fourthStep())
-            .next(finalStep())
             .build();
     }
 
@@ -72,7 +71,7 @@ public class ConcertBatch {
     @Bean
     public Step firstStep(KopisEntityWriter writer) {
         return new StepBuilder("firstStep", jobRepository)
-            .<ConcertEntity, ConcertEntity>chunk(10, platformTransactionManager)
+            .<Concert, Concert>chunk(10, platformTransactionManager)
             .reader(kopisApiReader)
             .writer(writer)
             .build();
@@ -168,8 +167,8 @@ public class ConcertBatch {
         List<String> columns = Arrays.asList("concertId", "grand", "delicate", "classical", "modern",
             "lyrical", "dynamic", "romantic", "tragic", "familiar", "novel");
 
-        List<ConcertEntity> concerts = concertRepository.getAllConcertsWithCategories();
-        for (ConcertEntity concert : concerts) {
+        List<Concert> concerts = concertRepository.getAllConcertsWithCategories();
+        for (Concert concert : concerts) {
             Map<String, Object> row = initializeRowData(columns, concert);
             StringJoiner rowContent = new StringJoiner(",");
             for (String column : columns) {
@@ -180,7 +179,7 @@ public class ConcertBatch {
     }
 
     // 새로운 Concert 데이터 행을 초기화하는 메서드
-    private Map<String, Object> initializeRowData(List<String> columns, ConcertEntity concert) {
+    private Map<String, Object> initializeRowData(List<String> columns, Concert concert) {
         Map<String, Object> row = new HashMap<>();
         row.put("concertId", concert.getMt20id());
 
