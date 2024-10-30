@@ -1,5 +1,6 @@
 package com.curateme.clacobatchserver.global;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.MappedSuperclass;
@@ -25,10 +26,13 @@ public abstract class BaseEntity {
 
 	// 활성 여부
 	@Enumerated(value = EnumType.STRING)
+	@Column(name = "active_status")
 	private ActiveStatus activeStatus = ActiveStatus.ACTIVE;
 	// 생성일
+	@Column(name = "created_at")
 	private LocalDateTime createdAt;
 	// 수정일
+	@Column(name = "updated_at")
 	private LocalDateTime updatedAt;
 
 	@PrePersist
