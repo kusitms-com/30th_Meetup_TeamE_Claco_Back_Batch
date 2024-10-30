@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapKeyColumn;
+import jakarta.persistence.Table;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -19,25 +20,26 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(name = "concert")
 public class Concert extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "concertId")
+    @Column(name = "concert_id")
     private String mt20id;
 
-    @Column(name = "concertName")
+    @Column(name = "concert_name")
     private String prfnm;
 
-    @Column(name = "startDate")
+    @Column(name = "start_date")
     private String prfpdfrom;
 
-    @Column(name = "endDate")
+    @Column(name = "end_date")
     private String prfpdto;
 
-    @Column(name = "facilityName")
+    @Column(name = "facility_name")
     private String fcltynm;
 
     @Column(name = "poster")
@@ -67,22 +69,22 @@ public class Concert extends BaseEntity {
     @Column(name = "age")
     private String prfage;
 
-    @Column(name = "companyName")
+    @Column(name = "company_name")
     private String entrpsnm;
 
-    @Column(name = "companyNameP")
+    @Column(name = "company_namep")
     private String entrpsnmP;
 
-    @Column(name = "companyNameA")
+    @Column(name = "company_namea")
     private String entrpsnmA;
 
-    @Column(name = "companyNameH")
+    @Column(name = "company_nameh")
     private String entrpsnmH;
 
-    @Column(name = "companyNameS")
+    @Column(name = "company_names")
     private String entrpsnmS;
 
-    @Column(name = "seatGuidance")
+    @Column(name = "seat_guidance")
     private String pcseguidance;
 
     @Column(name = "visit")
@@ -97,23 +99,23 @@ public class Concert extends BaseEntity {
     @Column(name = "festival")
     private String festival;
 
-    @Column(name = "musicalLicense")
+    @Column(name = "musical_license")
     private String musicallicense;
 
-    @Column(name = "musicalCreate")
+    @Column(name = "musical_create")
     private String musicalcreate;
 
-    @Column(name = "updateDate")
+    @Column(name = "update_date")
     private String updatedate;
 
-    @Column(name = "scheduleGuidance", length = 1000)
+    @Column(name = "schedule_guidance", length = 1000)
     private String dtguidance;
 
     @Column(name = "introduction")
     private String styurl;
 
     @ElementCollection
-    @CollectionTable(name = "ConcertCategory", joinColumns = @JoinColumn(name = "concertId"))
+    @CollectionTable(name = "concert_category", joinColumns = @JoinColumn(name = "concert_id"))
     @MapKeyColumn(name = "category")
     @Column(name = "score")
     private Map<String, Double> categories;

@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(name = "concert_category")
 public class ConcertCategory {
 
     @Id
@@ -22,7 +23,7 @@ public class ConcertCategory {
     private Double score;
 
     @ManyToOne
-    @JoinColumn(name = "concertId", nullable = false)
+    @JoinColumn(name = "concert_id", nullable = false)
     private Concert concert;
 
     public ConcertCategory(String category, Double score, Concert concert) {
