@@ -1,7 +1,9 @@
 package com.curateme.clacobatchserver.batch;
 
 import com.curateme.clacobatchserver.config.s3.S3Service;
+import com.curateme.clacobatchserver.dto.CategoryScoreDto;
 import com.curateme.clacobatchserver.entity.Concert;
+import com.curateme.clacobatchserver.repository.ConcertCategoryRepository;
 import com.curateme.clacobatchserver.repository.ConcertRepository;
 import com.curateme.clacobatchserver.service.ConcertCategoryExtractor;
 import com.curateme.clacobatchserver.service.KopisConcertApiReader;
@@ -13,6 +15,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +39,7 @@ public class ConcertBatch {
     private final JobRepository jobRepository;
     private final PlatformTransactionManager platformTransactionManager;
     private final ConcertRepository concertRepository;
+    private final ConcertCategoryRepository concertCategoryRepository;
 
     private final KopisConcertApiReader kopisApiReader;
     private final KopisDetailApiReader kopisDetailApiReader;
@@ -43,7 +47,7 @@ public class ConcertBatch {
     private final S3Service s3Service;
 
     public ConcertBatch(JobRepository jobRepository,
-        PlatformTransactionManager platformTransactionManager, ConcertRepository concertRepository,
+        PlatformTransactionManager platformTransactionManager, ConcertRepository concertRepository, ConcertCategoryRepository concertCategoryRepository,
         KopisConcertApiReader kopisApiReader,
         KopisDetailApiReader kopisDetailApiReader,
         ConcertCategoryExtractor concertCategoryExtractor,
@@ -51,6 +55,7 @@ public class ConcertBatch {
         this.jobRepository = jobRepository;
         this.platformTransactionManager = platformTransactionManager;
         this.concertRepository = concertRepository;
+        this.concertCategoryRepository = concertCategoryRepository;
         this.kopisApiReader = kopisApiReader;
         this.kopisDetailApiReader = kopisDetailApiReader;
         this.concertCategoryExtractor = concertCategoryExtractor;
@@ -60,10 +65,7 @@ public class ConcertBatch {
     @Bean
     public Job kopisJob(KopisEntityWriter writer){
         return new JobBuilder("kopisJob", jobRepository)
-            .start(firstStep(writer))
-            .next(secondStep())
-            .next(thirdStep())
-            .next(fourthStep())
+            .start(fourthStep())
             .build();
     }
 
@@ -167,16 +169,41 @@ public class ConcertBatch {
         List<String> columns = Arrays.asList("concertId", "grand", "delicate", "classical", "modern",
             "lyrical", "dynamic", "romantic", "tragic", "familiar", "novel");
 
-        List<Concert> concerts = concertRepository.getAllConcertsWithCategories();
-        for (Concert concert : concerts) {
-            Map<String, Object> row = initializeRowData(columns, concert);
-            StringJoiner rowContent = new StringJoiner(",");
-            for (String column : columns) {
-                rowContent.add(String.valueOf(row.get(column)));
+        List<Long> concertIds = concertRepository.findAllConcertIds();
+
+        for (Long concertId : concertIds) {
+            // 각 Concert ID에 대해 category와 score 조회
+            List<CategoryScoreDto> categoryScores = concertCategoryRepository.findByConcertId(concertId);
+            System.out.println("categoryScores = " + categoryScores);
+            // 각 카테고리의 기본 값을 0.0으로 초기화한 Map 생성
+            Map<String, Double> categoryScoreMap = new HashMap<>();
+            for (String column : columns.subList(1, columns.size())) {
+                categoryScoreMap.put(column, 0.0);
             }
+
+            // categoryScores에서 각 카테고리의 점수를 Map에 업데이트
+            for (CategoryScoreDto categoryScore : categoryScores) {
+                String category = categoryScore.getCategory().toLowerCase();
+                if (categoryScoreMap.containsKey(category)) {
+                    categoryScoreMap.put(category, categoryScore.getScore());
+                }
+            }
+
+            // CSV의 한 행을 구성하는 StringJoiner 생성
+            StringJoiner rowContent = new StringJoiner(",");
+            rowContent.add(String.valueOf(concertId)); // concertId 추가
+
+            // 각 카테고리의 점수를 순서대로 추가
+            for (String column : columns.subList(1, columns.size())) {
+                rowContent.add(String.valueOf(categoryScoreMap.get(column)));
+            }
+
+            // 완성된 행을 csvContent에 추가
             csvContent.add(rowContent.toString());
         }
     }
+
+
 
     // 새로운 Concert 데이터 행을 초기화하는 메서드
     private Map<String, Object> initializeRowData(List<String> columns, Concert concert) {
