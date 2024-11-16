@@ -114,6 +114,9 @@ public class Concert extends BaseEntity {
     @Column(name = "introduction")
     private String styurl;
 
+    @Column(name = "summary", length = 1500)
+    private String summary;
+
     @ElementCollection
     @CollectionTable(name = "concert_category", joinColumns = @JoinColumn(name = "concert_id"))
     @MapKeyColumn(name = "category")
@@ -166,4 +169,6 @@ public class Concert extends BaseEntity {
     public void setCategories(Map<String, Double> categories) {
         this.categories = categories;
     }
+
+    public void setSummary(String summary) {this.summary = summary; }
 }

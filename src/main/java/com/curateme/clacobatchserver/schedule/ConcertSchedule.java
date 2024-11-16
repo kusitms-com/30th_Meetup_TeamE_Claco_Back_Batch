@@ -20,8 +20,8 @@ public class ConcertSchedule {
         this.jobRegistry = jobRegistry;
     }
 
-    @Scheduled(cron = "10 * * * * *", zone = "Asia/Seoul")
-    //@Scheduled(cron = "0 0 0 1 * *", zone = "Asia/Seoul")
+    //@Scheduled(cron = "10 * * * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 0 1 * *", zone = "Asia/Seoul")
     public void runFirstJob() throws Exception {
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-hh-mm-ss");
