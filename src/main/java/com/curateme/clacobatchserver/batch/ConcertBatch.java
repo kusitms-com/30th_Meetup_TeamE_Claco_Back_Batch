@@ -6,6 +6,7 @@ import com.curateme.clacobatchserver.entity.Concert;
 import com.curateme.clacobatchserver.repository.ConcertCategoryRepository;
 import com.curateme.clacobatchserver.repository.ConcertRepository;
 import com.curateme.clacobatchserver.service.ConcertCategoryExtractor;
+import com.curateme.clacobatchserver.service.ConcertSummaryExtractor;
 import com.curateme.clacobatchserver.service.KopisConcertApiReader;
 import com.curateme.clacobatchserver.service.KopisDetailApiReader;
 import com.curateme.clacobatchserver.service.KopisEntityWriter;
@@ -32,10 +33,12 @@ import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.config.Task;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
 public class ConcertBatch {
+
     private final JobRepository jobRepository;
     private final PlatformTransactionManager platformTransactionManager;
     private final ConcertRepository concertRepository;
@@ -45,13 +48,16 @@ public class ConcertBatch {
     private final KopisDetailApiReader kopisDetailApiReader;
     private final ConcertCategoryExtractor concertCategoryExtractor;
     private final S3Service s3Service;
+    private final ConcertSummaryExtractor concertSummaryExtractor;
 
     public ConcertBatch(JobRepository jobRepository,
-        PlatformTransactionManager platformTransactionManager, ConcertRepository concertRepository, ConcertCategoryRepository concertCategoryRepository,
+        PlatformTransactionManager platformTransactionManager, ConcertRepository concertRepository,
+        ConcertCategoryRepository concertCategoryRepository,
         KopisConcertApiReader kopisApiReader,
         KopisDetailApiReader kopisDetailApiReader,
         ConcertCategoryExtractor concertCategoryExtractor,
-        S3Service s3Service) {
+        S3Service s3Service,
+        ConcertSummaryExtractor concertSummaryExtractor) {
         this.jobRepository = jobRepository;
         this.platformTransactionManager = platformTransactionManager;
         this.concertRepository = concertRepository;
@@ -60,12 +66,17 @@ public class ConcertBatch {
         this.kopisDetailApiReader = kopisDetailApiReader;
         this.concertCategoryExtractor = concertCategoryExtractor;
         this.s3Service = s3Service;
+        this.concertSummaryExtractor = concertSummaryExtractor;
     }
 
     @Bean
-    public Job kopisJob(KopisEntityWriter writer){
+    public Job kopisJob(KopisEntityWriter writer) {
         return new JobBuilder("kopisJob", jobRepository)
-            .start(fourthStep())
+            .start(firstStep(writer))
+            .next(secondStep())
+            .next(thirdStep())
+            .next(fourthStep())
+            .next(fifthStep())
             .build();
     }
 
@@ -118,6 +129,14 @@ public class ConcertBatch {
             }, platformTransactionManager).build();
     }
 
+    // 5. 클라코 큐레이션: 공연 정보 요약
+    @Bean
+    public Step fifthStep() {
+        return new StepBuilder("fifthStep", jobRepository)
+            .tasklet(concertSummaryExtractorTasklet(), platformTransactionManager)
+            .build();
+    }
+
     // 5. 해당 Batch에서 가져온 값들을 전부 삭제하는 로직
     @Bean
     public Step finalStep() {
@@ -166,14 +185,16 @@ public class ConcertBatch {
 
     // 새로운 Concert 데이터를 CSV에 추가하는 메서드
     private void appendNewConcertData(StringJoiner csvContent) {
-        List<String> columns = Arrays.asList("concertId", "grand", "delicate", "classical", "modern",
+        List<String> columns = Arrays.asList("concertId", "grand", "delicate", "classical",
+            "modern",
             "lyrical", "dynamic", "romantic", "tragic", "familiar", "novel");
 
         List<Long> concertIds = concertRepository.findAllConcertIds();
 
         for (Long concertId : concertIds) {
             // 각 Concert ID에 대해 category와 score 조회
-            List<CategoryScoreDto> categoryScores = concertCategoryRepository.findByConcertId(concertId);
+            List<CategoryScoreDto> categoryScores = concertCategoryRepository.findByConcertId(
+                concertId);
             System.out.println("categoryScores = " + categoryScores);
             // 각 카테고리의 기본 값을 0.0으로 초기화한 Map 생성
             Map<String, Double> categoryScoreMap = new HashMap<>();
@@ -202,7 +223,6 @@ public class ConcertBatch {
             csvContent.add(rowContent.toString());
         }
     }
-
 
 
     // 새로운 Concert 데이터 행을 초기화하는 메서드
@@ -250,8 +270,20 @@ public class ConcertBatch {
     public Tasklet concertCategoryExtractorTasklet() {
         return new Tasklet() {
             @Override
-            public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+            public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext)
+                throws Exception {
                 return concertCategoryExtractor.execute(contribution, chunkContext);
+            }
+        };
+    }
+
+    @Bean
+    public Tasklet concertSummaryExtractorTasklet() {
+        return new Tasklet() {
+            @Override
+            public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext)
+                throws Exception {
+                return concertSummaryExtractor.execute(contribution, chunkContext);
             }
         };
     }
