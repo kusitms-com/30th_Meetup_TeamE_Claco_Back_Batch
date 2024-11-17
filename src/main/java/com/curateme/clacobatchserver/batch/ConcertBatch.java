@@ -72,7 +72,11 @@ public class ConcertBatch {
     @Bean
     public Job kopisJob(KopisEntityWriter writer) {
         return new JobBuilder("kopisJob", jobRepository)
-            .start(fifthStep())
+            .start(firstStep(writer))
+            .next(secondStep())
+            .next(thirdStep())
+            .next(fourthStep())
+            .next(fifthStep())
             .build();
     }
 
