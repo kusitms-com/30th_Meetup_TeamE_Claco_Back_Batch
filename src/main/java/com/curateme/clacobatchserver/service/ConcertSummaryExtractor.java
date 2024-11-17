@@ -44,11 +44,11 @@ public class ConcertSummaryExtractor {
                 // Flask 서버에 요청 보내기
                 ResponseEntity<Map> response = restTemplate.postForEntity("http://localhost:8081/summaries", requestEntity, Map.class);
 
-                // TODO: 점검 필요
                 if (response.getBody() != null) {
                     String clovaResponse = (String) response.getBody().get("clova_response");
 
                     concert.setSummary(clovaResponse);
+                    concertRepository.save(concert);
                 }
 
             } catch (Exception e) {
