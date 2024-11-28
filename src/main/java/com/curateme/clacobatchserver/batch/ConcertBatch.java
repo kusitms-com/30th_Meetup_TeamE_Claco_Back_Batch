@@ -189,6 +189,19 @@ public class ConcertBatch {
             "modern",
             "lyrical", "dynamic", "romantic", "tragic", "familiar", "novel");
 
+        Map<String, String> translationMap = Map.of(
+            "웅장한", "grand",
+            "섬세한", "delicate",
+            "고전적인", "classical",
+            "현대적인", "modern",
+            "서정적인", "lyrical",
+            "역동적인", "dynamic",
+            "낭만적인", "romantic",
+            "비극적인", "tragic",
+            "친숙한", "familiar",
+            "새로운", "novel"
+        );
+
         List<Long> concertIds = concertRepository.findAllConcertIds();
 
         for (Long concertId : concertIds) {
@@ -204,9 +217,12 @@ public class ConcertBatch {
 
             // categoryScores에서 각 카테고리의 점수를 Map에 업데이트
             for (CategoryScoreDto categoryScore : categoryScores) {
-                String category = categoryScore.getCategory().toLowerCase();
-                if (categoryScoreMap.containsKey(category)) {
-                    categoryScoreMap.put(category, categoryScore.getScore());
+                String koreanCategory = categoryScore.getCategory();
+                System.out.println("koreanCategory = " + koreanCategory);
+                String englishCategory = translationMap.get(koreanCategory);
+                System.out.println("englishCategory = " + englishCategory);
+                if (categoryScoreMap.containsKey(englishCategory)) {
+                    categoryScoreMap.put(englishCategory, categoryScore.getScore());
                 }
             }
 
@@ -223,7 +239,6 @@ public class ConcertBatch {
             csvContent.add(rowContent.toString());
         }
     }
-
 
     // 새로운 Concert 데이터 행을 초기화하는 메서드
     private Map<String, Object> initializeRowData(List<String> columns, Concert concert) {
