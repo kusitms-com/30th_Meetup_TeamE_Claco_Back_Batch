@@ -31,18 +31,6 @@ public class ConcertCategoryExtractor {
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) {
         List<Concert> concerts = concertRepository.findAll();
 
-        Map<String, String> translationMap = new HashMap<>();
-        translationMap.put("웅장한", "grand");
-        translationMap.put("섬세한", "delicate");
-        translationMap.put("고전적인", "classical");
-        translationMap.put("현대적인", "modern");
-        translationMap.put("서정적인", "lyrical");
-        translationMap.put("역동적인", "dynamic");
-        translationMap.put("낭만적인", "romantic");
-        translationMap.put("비극적인", "tragic");
-        translationMap.put("친숙한", "familiar");
-        translationMap.put("새로운", "novel");
-
         for (Concert concert : concerts) {
             try {
                 String introduction = concert.getStyurl();
@@ -59,16 +47,28 @@ public class ConcertCategoryExtractor {
 
                 if (response.getBody() != null) {
                     Map<String, Object> responseBody = (Map<String, Object>) response.getBody();
-                    List<Map<String, Object>> clovaResponse = (List<Map<String, Object>>) responseBody.get("clova_response");
+                    Object clovaResponse = responseBody.get("clova_response");
 
                     Map<String, Double> categories = new HashMap<>();
 
-                    for (Map<String, Object> categoryData : clovaResponse) {
+                    // clova_response 처리
+                    if (clovaResponse instanceof Map) {
+                        // clova_response가 Map인 경우
+                        Map<String, Object> categoryData = (Map<String, Object>) clovaResponse;
                         String koreanCategory = categoryData.get("name").toString();
                         Double score = Double.parseDouble(categoryData.get("score").toString());
 
-                        String englishCategory = translationMap.getOrDefault(koreanCategory, koreanCategory);
-                        categories.put(englishCategory, score);
+                        categories.put(koreanCategory, score);
+                    } else if (clovaResponse instanceof List) {
+                        // clova_response가 List인 경우
+                        List<Map<String, Object>> categoryList = (List<Map<String, Object>>) clovaResponse;
+
+                        for (Map<String, Object> categoryData : categoryList) {
+                            String koreanCategory = categoryData.get("name").toString();
+                            Double score = Double.parseDouble(categoryData.get("score").toString());
+
+                            categories.put(koreanCategory, score);
+                        }
                     }
 
                     concert.setCategories(categories);

@@ -46,7 +46,7 @@ public class KopisConcertApiReader implements ItemReader<Concert> {
 
     private void loadNextPage() {
         LocalDate startDate = LocalDate.now();
-        LocalDate endDate = startDate.plusDays(1);
+        LocalDate endDate = startDate.plusDays(30);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
         String formattedStartDate = startDate.format(formatter);
@@ -62,24 +62,28 @@ public class KopisConcertApiReader implements ItemReader<Concert> {
         try {
             ResponseEntity<Concert[]> response = restTemplate.exchange(requestUrl, HttpMethod.GET, entity, Concert[].class);
             System.out.println("response = " + response);
+
             if (response.getBody() != null && response.getBody().length > 0) {
                 beforeEntities.clear();
-                for (Concert beforeentity : response.getBody()) {
-                    Concert concert = new Concert();
-                    concert.setConcertDetails(
-                        beforeentity.getMt20id(),
-                        beforeentity.getPrfnm(),
-                        beforeentity.getPrfpdfrom(),
-                        beforeentity.getPrfpdto(),
-                        beforeentity.getFcltynm(),
-                        beforeentity.getPoster(),
-                        beforeentity.getArea(),
-                        beforeentity.getGenrenm(),
-                        beforeentity.getOpenrun(),
-                        beforeentity.getPrfstate()
-                    );
 
-                    beforeEntities.add(concert);
+                for (Concert beforeentity : response.getBody()) {
+                    if ("무용".equals(beforeentity.getGenrenm()) || "서양음악(클래식)".equals(beforeentity.getGenrenm())) {
+                        Concert concert = new Concert();
+                        concert.setConcertDetails(
+                            beforeentity.getMt20id(),
+                            beforeentity.getPrfnm(),
+                            beforeentity.getPrfpdfrom(),
+                            beforeentity.getPrfpdto(),
+                            beforeentity.getFcltynm(),
+                            beforeentity.getPoster(),
+                            beforeentity.getArea(),
+                            beforeentity.getGenrenm(),
+                            beforeentity.getOpenrun(),
+                            beforeentity.getPrfstate()
+                        );
+
+                        beforeEntities.add(concert);
+                    }
                 }
             } else {
                 beforeEntities.clear();
@@ -88,5 +92,6 @@ public class KopisConcertApiReader implements ItemReader<Concert> {
             System.err.println("Error: " + e.getStatusCode() + " - " + e.getResponseBodyAsString());
             beforeEntities.clear();
         }
+
     }
 }
